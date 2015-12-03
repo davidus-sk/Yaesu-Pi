@@ -9,6 +9,8 @@ const char Cat::CMD_LOCK_OFF = 0x80;
 const char Cat::CMD_PTT_ON = 0x08;
 const char Cat::CMD_PTT_OFF = 0x88;
 const char Cat::CMD_SET_FREQUENCY = 0x01;
+const char Cat::CMD_GET_FREQUENCY_MODE = 0x03;
+const char Cat::CMD_SET_MODE = 0x07;
 
 const char Cat::OP_MODE_LSB = 0x00;
 const char Cat::OP_MODE_USB = 0x01;
@@ -64,6 +66,10 @@ Cat::~Cat()
 
 // private methods
 
+/**
+ * Send CAT packet to tcvr
+ * @param char[5] packet Five bytes to write to tcvr
+ * @return char Byte count
 char Cat::SendPacket(char packet[5])
 {
 	char byte_count = 0;
@@ -75,9 +81,13 @@ char Cat::SendPacket(char packet[5])
 	return byte_count;
 }
 
+/**
+ * Read response packet from tcvr
+ * @return char* 
+ */
 char Cat::ReadPacket()
 {
-	char packet[6];
+	char packet[6] = {0};
 	char byte_count = read(uart0_filestream, (void*)packet, 5);
 
 	if (byte_count < 0) {
@@ -86,7 +96,6 @@ char Cat::ReadPacket()
 		//No data waiting
 	} else {
 		//Bytes received
-		packet[byte_count] = '\0';
 		cout << "Bytes: " << (int)packet[0] << " "<< (int)packet[1] << " "<< (int)packet[2] << " "<< (int)packet[3] << " "<< (int)packet[4] << endl;
 	}
 }
@@ -130,27 +139,31 @@ bool Cat::Ptt(bool enabled)
 
 	return true;
 }
-
+/**
+ * Set tcvr's opereating frequency
+ * @param double frequency
+ * @return bool
+ */
 bool Cat::SetFrequency(double frequency)
 {
 	// form the packet
 	char packet[5] = {0x00, 0x00, 0x00, 0x00, CMD_SET_FREQUENCY};
 	double intpart;
 
-	frequency = frequency * 1000;
-	packet[3] = modf(frequency, &intpart) * 100;
+	double freq = frequency * 1000;
+	packet[3] = modf(freq, &intpart) * 100;
 	packet[3] = strtol(&packet[3], nullptr, 16);
 
-	frequency = frequency / 100;
-	packet[2] = modf(frequency, &intpart) * 100;
+	freq = freq / 100;
+	packet[2] = modf(freq, &intpart) * 100;
 	packet[2] = strtol(&packet[2], nullptr, 16);
 
-	frequency = frequency / 100;
-	packet[1] = modf(frequency, &intpart) * 100;
+	freq = freq / 100;
+	packet[1] = modf(freq, &intpart) * 100;
 	packet[1] = strtol(&packet[1], nullptr, 16);
 
-	frequency = frequency / 100;
-	packet[0] = modf(frequency, &intpart) * 100;
+	freq = freq / 100;
+	packet[0] = modf(freq, &intpart) * 100;
 	packet[0] = strtol(&packet[0], nullptr, 16);
 
 	// send packet to device
@@ -166,16 +179,22 @@ bool Cat::SetFrequency(double frequency)
 	return true;
 }
 
+/**
+ * Set tcvr operating mode
+ * @param char mode
+ * @return bool
+ * @see OP_MODE_XXXXXX
+ */
 bool Cat::SetOperatingMode(char mode)
 {
 	// form the packet
-	char packet[5] = {mode, 0x0, 0x0, 0x0, 0x07};
+	char packet[5] = {mode, 0x00, 0x00, 0x00, CMD_SET_MODE};
 
 	// send packet to device
 	char count = SendPacket(packet);
 
-	// check if we sent 10 bytes
-	if (count != 10) {
+	// check if we sent 5 bytes
+	if (count != 5) {
 		return false;
 	}
 
@@ -184,6 +203,12 @@ bool Cat::SetOperatingMode(char mode)
 	return true;
 }
 
+/**
+ * Set tcvr operating mode
+ * @param string text_mode
+ * @return bool
+ * @see OP_MODES
+ */
 bool Cat::SetOperatingMode(string text_mode)
 {
 	try {
@@ -195,10 +220,14 @@ bool Cat::SetOperatingMode(string text_mode)
 	}
 }
 
+/**
+ * Read current frequency and mode
+ * @return bool
+ */
 bool Cat::GetFrequencyModeStatus()
 {
 	// form the packet
-	char packet[5] = {0x00, 0x00, 0x00, 0x00, 0x03};
+	char packet[5] = {0x00, 0x00, 0x00, 0x00, CMD_GET_FREQUENCY_MODE};
 
 	// send packet to device
 	char count = SendPacket(packet);
@@ -210,6 +239,8 @@ bool Cat::GetFrequencyModeStatus()
 
 	// read packet
 	ReadPacket();
+
+	cout << "Command: GetFrequencyModeStatus" << endl;
 
 	return true;
 }
