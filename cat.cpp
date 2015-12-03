@@ -5,12 +5,12 @@ using namespace std;
 // constants
 
 const char Cat::CMD_LOCK_ON = 0x00;
-const char Cat::CMD_LOCK_OFF = 0x80;
-const char Cat::CMD_PTT_ON = 0x08;
-const char Cat::CMD_PTT_OFF = 0x88;
 const char Cat::CMD_SET_FREQUENCY = 0x01;
 const char Cat::CMD_GET_FREQUENCY_MODE = 0x03;
 const char Cat::CMD_SET_MODE = 0x07;
+const char Cat::CMD_PTT_ON = 0x08;
+const char Cat::CMD_LOCK_OFF = 0x80;
+const char Cat::CMD_PTT_OFF = 0x88;
 
 const char Cat::OP_MODE_LSB = 0x00;
 const char Cat::OP_MODE_USB = 0x01;
@@ -70,6 +70,7 @@ Cat::~Cat()
  * Send CAT packet to tcvr
  * @param char[5] packet Five bytes to write to tcvr
  * @return char Byte count
+ */
 char Cat::SendPacket(char packet[5])
 {
 	char byte_count = 0;
