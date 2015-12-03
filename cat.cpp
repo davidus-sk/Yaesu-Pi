@@ -101,6 +101,23 @@ char Cat::ReadPacket()
 	}
 }
 
+/**
+ * Find map key by value
+ * @param map dictionary
+ * @param char value
+ * @return string
+ */
+string Cat::FindKeyByValue(const map<string, char> dictionary, char value)
+{
+	for (auto it = dictionary.begin(); it != dictionary.end(); ++it) {
+		if (it->second == value) {
+			return it->first;
+		}
+	}
+
+	return "";
+}
+
 // public methods
 
 bool Cat::Lock(bool enabled)
@@ -199,7 +216,9 @@ bool Cat::SetOperatingMode(char mode)
 		return false;
 	}
 
-	cout << "Command: SetOperatingMode" << endl;
+	string text_mode = FindKeyByValue(mode);
+
+	cout << "Command> SetOperatingMode: " << text_mode << endl;
 
 	return true;
 }
