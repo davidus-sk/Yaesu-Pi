@@ -1,3 +1,15 @@
+/**
+ * Raspberry Pi and Yeasu FT8xx fusion project
+ *
+ * This file is part of Yaesu-Pi
+ *
+ * (c) 2015 David Ponevac (david at davidus dot sk) www.davidus.sk
+ *
+ * https://github.com/davidus-sk/Yaesu-Pi
+ *
+ * You are free to use, modify, extend, do whatever you like.
+ * Please add attribution to your code.
+ */
 #include "cat.h"
 
 using namespace std;
@@ -40,41 +52,25 @@ const map<string, char> Cat::OP_MODES {
 
 // constructor
 
-Cat::Cat(int port_speed, const char * port_name)
+/**
+ * Constructor takes inoption connection info
+ * @param string serial_device
+ * @param int port_speed
+ */
+Cat::Cat(string serial_device, int port_speed)
 {
-	uart0_filestream = open(port_name, O_RDWR | O_NOCTTY);
-
-	if (uart0_filestream == -1) {
-		cout << "Can't open" << port_name << endl;
-	} else {
-		if (verbose)
-			cout << "Port " << port_name << " successfully opened" << endl;
-	}
-
-	struct termios options;
-	tcgetattr(uart0_filestream, &options);
-
-	cfsetispeed(&options, port_speed);
-	cfsetospeed(&options, port_speed);
-
-	options.c_cflag &= ~PARENB;
-	options.c_cflag &= ~CSIZE;
-	options.c_cflag = port_speed | CS8 | CLOCAL | CREAD | CSTOPB;
-	options.c_iflag = IGNPAR;
-	options.c_oflag = 0;
-	options.c_lflag = 0;
-	options.c_cc[VMIN] = 5;
-	options.c_cc[VTIME] = 5;
-	tcflush(uart0_filestream, TCIFLUSH);
-	tcsetattr(uart0_filestream, TCSANOW, &options);
+	uart0_filestream = -1;
+	uart0_device = serial_device;
+	uart0_speed = port_speed;
 }
 
 // destructor
 
 Cat::~Cat()
 {
-	if (verbose)
+	if (verbose) {
 		cout << "Closing port" << endl;
+	}
 
 	close(uart0_filestream);
 }
@@ -86,9 +82,14 @@ Cat::~Cat()
  * @param bool v
  * @return void
  */
-void Cat::setVerbose(bool v)
+void Cat::SetVerbose(bool v)
 {
 	verbose = v;
+}
+
+map<string, string> Cat::GetTcvrStatus()
+{
+	return tcvr_status;
 }
 
 // private methods
@@ -131,15 +132,16 @@ char Cat::ReadPacket(char * packet)
 	timeout.tv_usec = 0;
 
 	if (select(uart0_filestream + 1, &read_fds, &write_fds, &except_fds, &timeout) == 1) {
-		byte_count = read(uart0_filestream, (void*)packet, 5);
+		byte_count = read(uart0_filestream, packet, 5);
 
 		if (byte_count < 0) {
 			cout << "Error reading from serial device." << endl;
 		} else if (byte_count == 0) {
 			cout << "No data was read from serial device." << endl;
 		} else {
-			if (verbose)
+			if (verbose) {
 				cout << "Bytes: " << (int)packet[0] << " "<< (int)packet[1] << " "<< (int)packet[2] << " "<< (int)packet[3] << " "<< (int)packet[4] << endl;
+			}
 		}
 	}
 
@@ -171,9 +173,7 @@ string Cat::FindKeyByValue(const map<string, char> dictionary, char value)
  */
 char Cat::ConvertToBase(double value, char base)
 {
-	ostringstream strs;
-	strs << value;
-	return stoi(strs.str(), nullptr, base);
+	return stoi(to_string(value), nullptr, base);
 }
 
 /**
@@ -186,22 +186,89 @@ double Cat::BytesToFrequency(char * bytes)
 	stringstream strs;
 	strs << setfill('0') << setw(2) << std::hex << (int)bytes[0] << setw(2) << std::hex << (int)bytes[1] << setw(2) << std::hex << (int)bytes[2] << setw(2) << std::hex << (int)bytes[3];
 
-	double x;
-	strs >> x;
-	return x / 100000;
+	double f;
+	strs >> f;
+	return f / 100000;
 }
 
 // public methods
 
-void Cat::Json()
+/**
+ * Connecto to serial port at given speed
+ * @param string serial_device
+ * @param int port_speed
+ * @return bool
+ */
+bool Cat::Connect(string serial_device, int port_speed)
 {
-	cout << "{";
+	struct stat buffer;
 
-	for (auto it = tcvr_status.begin(); it != tcvr_status.end(); ++it) {
-		cout << "\"" << it->first << "\":\"" << it->second << "\"";
+	// if new values were supplied, replace old ones
+	uart0_device = serial_device.empty() ? uart0_device : serial_device;
+	uart0_speed = port_speed > 0 ? port_speed : uart0_speed;
+
+	if (stat(uart0_device.c_str(), &buffer) != 0) {
+		cout << "Serial device " << uart0_device << " does not exist!" << endl;
+		return false;
 	}
 
-	cout << "}";
+	// open device
+	uart0_filestream = open(uart0_device.c_str(), O_RDWR | O_NOCTTY);
+
+	if (uart0_filestream == -1) {
+		cout << "Can't open serial device " << uart0_device << endl;
+		return false;
+	} else {
+		if (verbose) {
+			cout << "Serial device " << uart0_device << " successfully opened." << endl;
+		}
+	}
+
+	struct termios options;
+	tcgetattr(uart0_filestream, &options);
+
+	cfsetispeed(&options, port_speed);
+	cfsetospeed(&options, port_speed);
+
+	options.c_cflag &= ~PARENB;
+	options.c_cflag &= ~CSIZE;
+	options.c_cflag = uart0_speed | CS8 | CLOCAL | CREAD | CSTOPB;
+	options.c_iflag = IGNPAR;
+	options.c_oflag = 0;
+	options.c_lflag = 0;
+	options.c_cc[VMIN] = 5;
+	options.c_cc[VTIME] = 5;
+	tcflush(uart0_filestream, TCIFLUSH);
+	tcsetattr(uart0_filestream, TCSANOW, &options);
+
+	return true;
+}
+
+/**
+ * Produce JSON formatted status string
+ * @param bool print
+ * @return string
+ */
+string Cat::Json(bool print)
+{
+	int item_count = tcvr_status.size();
+	stringstream output;
+
+	output << "{";
+
+	if (item_count) {
+		for (auto it = tcvr_status.begin(); it != tcvr_status.end(); ++it) {
+			output << "\"" << it->first << "\":\"" << it->second << "\"" << (--item_count > 0 ? "," : "" );
+		}
+	}
+
+	output << "}";
+
+	if (print) {
+		cout << output.str();
+	}
+
+	return output.str();
 }
 
 bool Cat::Lock(bool enabled)
@@ -270,13 +337,16 @@ bool Cat::SetFrequency(double frequency)
 	// send packet to device
 	char count = SendPacket(packet);
 
+	ReadPacket(packet);
+
 	// check if we sent 5 bytes
 	if (count != 5) {
 		return false;
 	}
 
-	if (verbose)
+	if (verbose) {
 		cout << "Command> SetFrequency: " << frequency << " MHz" << endl;
+	}
 
 	return true;
 }
@@ -295,6 +365,8 @@ bool Cat::SetOperatingMode(char mode)
 	// send packet to device
 	char count = SendPacket(packet);
 
+	ReadPacket(packet);
+
 	// check if we sent 5 bytes
 	if (count != 5) {
 		return false;
@@ -302,8 +374,9 @@ bool Cat::SetOperatingMode(char mode)
 
 	string text_mode = FindKeyByValue(OP_MODES, mode);
 
-	if (verbose)
+	if (verbose) {
 		cout << "Command> SetOperatingMode: " << text_mode << endl;
+	}
 
 	return true;
 }
@@ -316,13 +389,18 @@ bool Cat::SetOperatingMode(char mode)
  */
 bool Cat::SetOperatingMode(string text_mode)
 {
-	try {
-		char mode = OP_MODES.at(text_mode);
+	// WFM cannot be set, it might cause tcvr to freeze
+	if (text_mode != "WFM") {
+		try {
+			char mode = OP_MODES.at(text_mode);
 
-		return SetOperatingMode(mode);
-	} catch (const out_of_range& oor) {
-		return false;
+			return SetOperatingMode(mode);
+		} catch (const out_of_range& oor) {
+			return false;
+		}
 	}
+
+	return false;
 }
 
 /**

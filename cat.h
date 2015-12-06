@@ -1,3 +1,15 @@
+/**
+ * Raspberry Pi and Yeasu FT8xx fusion project
+ *
+ * This file is part of Yaesu-Pi
+ *
+ * (c) 2015 David Ponevac (david at davidus dot sk) www.davidus.sk
+ *
+ * https://github.com/davidus-sk/Yaesu-Pi
+ *
+ * You are free to use, modify, extend, do whatever you like.
+ * Please add attribution to your code.
+ */
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -8,7 +20,8 @@
 #include <map>
 #include <stdexcept>
 #include <sstream>
-#include  <iomanip>
+#include <iomanip>
+#include <sys/stat.h>
 
 using namespace std;
 
@@ -18,7 +31,9 @@ using namespace std;
 class Cat
 {
 	private:
-		int uart0_filestream;
+		int uart0_filestream, uart0_speed;
+		string uart0_device;
+
 		bool verbose;
 		map<string, string> tcvr_status;
 
@@ -54,13 +69,18 @@ class Cat
 
 		static const map<string, char> OP_MODES;
 
-		Cat(int port_speed, const char * port_name);
+		// constructor & destructor
+		Cat(string serial_device = "", int port_speed = B9600);
 		~Cat();
 
-		void setVerbose(bool v);
+		// setters & getters
+		void SetVerbose(bool v);
+		map<string, string> GetTcvrStatus();
 
-		void Json();
+		bool Connect(string serial_device = "", int port_speed = 0);
+		string Json(bool print = true);
 
+		// CAT functions
 		bool Lock(bool enabled);
 		bool Ptt(bool enabled);
 		bool SetFrequency(double frequency);

@@ -1,8 +1,17 @@
 /**
+ * Raspberry Pi and Yeasu FT8xx fusion project
+ *
+ * This file is part of Yaesu-Pi
+ *
+ * (c) 2015 David Ponevac (david at davidus dot sk) www.davidus.sk
+ *
+ * https://github.com/davidus-sk/Yaesu-Pi
+ *
+ * You are free to use, modify, extend, do whatever you like.
+ * Please add attribution to your code.
  *
  * How to compile: g++ -O3 -std=c++0x -o yaesu yaesu.cpp cat.cpp
  */
-
 #include "cat.h"
 #include <sys/stat.h>
 #include <algorithm>
@@ -18,10 +27,11 @@ int main(int argc, char **argv)
 
 	double frequency = -1;
 	int mode = -1;
-	string serial_port;
+	string serial_device;
+	int serial_speed;
 	bool lock = false, unlock = false, status = false, rx_status = false, tx_status = false, verbose = false, json = false;
 
-	while ((option_char = getopt(argc, argv, ":f:m:d:luhtrsvj")) != -1) {
+	while ((option_char = getopt(argc, argv, ":f:m:d:b:luhtrsvj")) != -1) {
 		switch(option_char) {
 			// set frequency
 			case 'f':
@@ -48,12 +58,23 @@ int main(int argc, char **argv)
 
 			// set serial device
 			case 'd':
-				serial_port = optarg;
+				serial_device = optarg;
 				struct stat buffer;
 
-				if (stat (serial_port.c_str(), &buffer) != 0) {
-					cout << argv[0] << ": Invalid serial device: " << serial_port << endl << endl;
+				if (stat(serial_device.c_str(), &buffer) != 0) {
+					cout << argv[0] << ": Invalid serial device: " << serial_device << endl << endl;
 					return -1;
+				}
+
+				break;
+
+			// set serial speed
+			case 'b':
+				serial_speed = stoi(optarg, nullptr);
+
+				if (serial_speed != 4800 && serial_speed != 9600) {
+					cout << argv[0] << ": Setting port speed to 9600 bauds." << endl << endl;
+					serial_speed = 9600;
 				}
 
 				break;
@@ -110,9 +131,17 @@ int main(int argc, char **argv)
 		}
 	}
 
+	if (serial_device.empty()) {
+		cout << argv[0] << ": Please specify serial device attached to your transciever!" << endl << endl;
+		return -1;
+	}
+
 	// create CAT object
-	Cat * cat = new Cat(B9600, serial_port.c_str());
-	cat->setVerbose(verbose);
+	Cat * cat = new Cat();
+	cat->SetVerbose(verbose && !json);
+	cat->Connect(serial_device, serial_speed);
+
+	// try to get status to check tcvr is reachable
 	bool tcvr_responding = cat->GetFrequencyModeStatus();
 
 	if (!tcvr_responding) {
@@ -155,6 +184,7 @@ int main(int argc, char **argv)
 		cat->GetTxStatus();
 	}
 
+	// output status message in JSON format
 	if (json) {
 		cat->Json();
 	}
@@ -164,9 +194,18 @@ int main(int argc, char **argv)
 	return 1;
 }
 
+/**
+ * Show help message
+ * @param char* s This executable
+ * @return void
+ */
 void show_help(char *s)
 {
-	cout << "Usage: " << s << " -d <to callsign> -s <from callsign> [-p <path>] [-vj]" << endl << endl;
+	cout << "Raspberry Pi and Yeasu FT8xx fusion" << endl << endl;
+
+	cout << "Usage: " << endl;
+	cout << " " << s << " -d <serial device> [-f <frequency in MHz>] [-m <operating mode>]  [-lurtsvj]" << endl << endl;
+
 	cout << "Options:" << endl;
 	cout << " -d serial device (e.g. /dev/ttyUSB0)" << endl;
 	cout << " -l lock transciever" << endl;
@@ -177,5 +216,8 @@ void show_help(char *s)
 	cout << " -t get transmitter status" << endl;
 	cout << " -s get current frequency and mode" << endl;
 	cout << " -v verbose output" << endl;
-	cout << " -j output JSON formatted text" << endl;
+	cout << " -j output JSON formatted text" << endl << endl;
+
+	cout << "Examples:" << endl;
+	cout << " " << s << " -d /dev/ttyUSB0  -f 14.190 -m USB" << endl; 
 }
