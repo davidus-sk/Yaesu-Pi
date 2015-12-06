@@ -22,6 +22,7 @@
 #include <sstream>
 #include <iomanip>
 #include <sys/stat.h>
+#include <locale>
 
 using namespace std;
 
@@ -44,8 +45,6 @@ class Cat
 		char ConvertToBase(double value, char base);
 
 	public:
-		Cat() : verbose(false) {}
-
 		static const char CMD_LOCK_ON;
 		static const char CMD_LOCK_OFF;
 		static const char CMD_PTT_ON;
@@ -70,14 +69,14 @@ class Cat
 		static const map<string, char> OP_MODES;
 
 		// constructor & destructor
-		Cat(string serial_device = "", int port_speed = B9600);
+		Cat();
 		~Cat();
 
 		// setters & getters
 		void SetVerbose(bool v);
 		map<string, string> GetTcvrStatus();
 
-		bool Connect(string serial_device = "", int port_speed = 0);
+		bool Connect(string serial_device = "", int port_speed = B9600);
 		string Json(bool print = true);
 
 		// CAT functions

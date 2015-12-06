@@ -27,11 +27,11 @@ int main(int argc, char **argv)
 
 	double frequency = -1;
 	int mode = -1;
-	string serial_device;
+	string serial_device, ptt_state;
 	int serial_speed;
 	bool lock = false, unlock = false, status = false, rx_status = false, tx_status = false, verbose = false, json = false;
 
-	while ((option_char = getopt(argc, argv, ":f:m:d:b:luhtrsvj")) != -1) {
+	while ((option_char = getopt(argc, argv, ":f:m:d:b:luhtrsvjp:")) != -1) {
 		switch(option_char) {
 			// set frequency
 			case 'f':
@@ -56,6 +56,16 @@ int main(int argc, char **argv)
 					}
 				} break;
 
+			case 'p':
+				ptt_state = optarg;
+
+				if (ptt_state != "on" && ptt_state != "off") {
+					cout << argv[0]  << ": Invalid PTT state: " << ptt_state << ". Allowed values: on/off." << endl << endl;
+					return -1;
+				}
+
+				break;
+
 			// set serial device
 			case 'd':
 				serial_device = optarg;
@@ -72,7 +82,7 @@ int main(int argc, char **argv)
 			case 'b':
 				serial_speed = stoi(optarg, nullptr);
 
-				if (serial_speed != 4800 && serial_speed != 9600) {
+				if (serial_speed != 2400 && serial_speed != 4800 && serial_speed != 9600) {
 					cout << argv[0] << ": Setting port speed to 9600 bauds." << endl << endl;
 					serial_speed = 9600;
 				}
@@ -169,6 +179,15 @@ int main(int argc, char **argv)
 		cat->SetFrequency(frequency);
 	}
 
+	// key the transmitter
+	if (!ptt_state.empty()) {
+		if (ptt_state == "on") {
+			cat->Ptt(true);
+		} else {
+			cat->Ptt(false);
+		}
+	}
+
 	// get frequency and mode status
 	if (status) {
 		cat->GetFrequencyModeStatus();
@@ -204,12 +223,14 @@ void show_help(char *s)
 	cout << "Raspberry Pi and Yeasu FT8xx fusion" << endl << endl;
 
 	cout << "Usage: " << endl;
-	cout << " " << s << " -d <serial device> [-f <frequency in MHz>] [-m <operating mode>]  [-lurtsvj]" << endl << endl;
+	cout << " " << s << " -d <serial device> [-b <serial speed>] [-f <frequency in MHz>] [-m <operating mode>] [-p <on/off>] [-lurtsvj]" << endl << endl;
 
 	cout << "Options:" << endl;
 	cout << " -d serial device (e.g. /dev/ttyUSB0)" << endl;
+	cout << " -b serial speed (2400, 4800, 9600)" << endl;
 	cout << " -l lock transciever" << endl;
 	cout << " -u unlock transciever" << endl;
+	cout << " -p <on/off> key transmitter" <endl;
 	cout << " -m set operaring mode (CW, USB, LSB, ...)" << endl;
 	cout << " -f set frequency in MHz (e.g. 14.190)" << endl;
 	cout << " -r get receiver status" << endl;
@@ -219,5 +240,8 @@ void show_help(char *s)
 	cout << " -j output JSON formatted text" << endl << endl;
 
 	cout << "Examples:" << endl;
-	cout << " " << s << " -d /dev/ttyUSB0  -f 14.190 -m USB" << endl; 
+	cout << " Set transciever to 14.190 MHz USB:" << endl;
+	cout << " " << s << " -d /dev/ttyUSB0 -f 14.190 -m USB" << endl << endl;
+	cout << " Get RX, frequency and mode status in json format:" << endl;
+	cout << " " << s << " -d /dev/ttyUSB0 -s -r -j" << endl;
 }

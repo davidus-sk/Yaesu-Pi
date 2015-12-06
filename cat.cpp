@@ -57,11 +57,10 @@ const map<string, char> Cat::OP_MODES {
  * @param string serial_device
  * @param int port_speed
  */
-Cat::Cat(string serial_device, int port_speed)
+Cat::Cat()
 {
 	uart0_filestream = -1;
-	uart0_device = serial_device;
-	uart0_speed = port_speed;
+	verbose = false;
 }
 
 // destructor
@@ -203,9 +202,21 @@ bool Cat::Connect(string serial_device, int port_speed)
 {
 	struct stat buffer;
 
+	switch(port_speed) {
+		case 2400:
+			uart0_speed = B2400;
+			break;
+		case 4800:
+			uart0_speed = B4800;
+			break;
+		case 9600:
+		default:
+			uart0_speed = B9600;
+			break;
+	}
+
 	// if new values were supplied, replace old ones
 	uart0_device = serial_device.empty() ? uart0_device : serial_device;
-	uart0_speed = port_speed > 0 ? port_speed : uart0_speed;
 
 	if (stat(uart0_device.c_str(), &buffer) != 0) {
 		cout << "Serial device " << uart0_device << " does not exist!" << endl;
@@ -220,15 +231,15 @@ bool Cat::Connect(string serial_device, int port_speed)
 		return false;
 	} else {
 		if (verbose) {
-			cout << "Serial device " << uart0_device << " successfully opened." << endl;
+			cout << "Serial device " << uart0_device << " successfully opened at " << port_speed << " bauds."<< endl;
 		}
 	}
 
 	struct termios options;
 	tcgetattr(uart0_filestream, &options);
 
-	cfsetispeed(&options, port_speed);
-	cfsetospeed(&options, port_speed);
+	cfsetispeed(&options, uart0_speed);
+	cfsetospeed(&options, uart0_speed);
 
 	options.c_cflag &= ~PARENB;
 	options.c_cflag &= ~CSIZE;
@@ -389,6 +400,9 @@ bool Cat::SetOperatingMode(char mode)
  */
 bool Cat::SetOperatingMode(string text_mode)
 {
+	locale loc;
+	text_mode = toupper(text_mode, loc);
+
 	// WFM cannot be set, it might cause tcvr to freeze
 	if (text_mode != "WFM") {
 		try {
