@@ -9,8 +9,8 @@ Compile code using `g++ -O3 -std=c++0x -o yaesu yaesu.cpp cat.cpp`. Once compile
 
 * `-d <serial device>` Please supply path to your serial device, for example /dev/ttyUSB0. [required]
 * `-b <serial speed>` Default is set to 9600 baud. You can set it to 2400, 4800 and 9600. [optional]
-* `-l` Lock the front control panel of the transceiver. [optional]
-* `-u` Unlock the front control panel of the transceiver. [optional]
+* `-p <on/off>` Key transmitter. Allowed values are "on" and "off". [optional]
+* `-l <on/off>` Lock/unlosk the front control panel of the transceiver. [optional]
 * `-m <mode>` Set operating mode, for example USB, LSB, CW, DIG, PKT, FM, AM. [optional]
 * `-f <frequency>` Set operating frequency, for example 14.190. [optional]
 * `-r` Get receiver status such as signal strength. [optional]
@@ -33,7 +33,7 @@ $frequency = $_GET['f'] * 1;
 $mode = $_GET['m'];
 
 // allowed modes
-if (in_array($mode, array('USB', 'LSB', 'CW', 'AM', 'FM', 'PKT', 'DIG')) {
+if (in_array($mode, array('USB', 'LSB', 'CW', 'AM', 'FM', 'PKT', 'DIG'))) {
 	// pass it to the binary
 	$output = `/path/to/yaesu -d /dev/ttyUSB0 -f $frequency -m $mode -r -s -j`;
 	$data = json_decode($output);

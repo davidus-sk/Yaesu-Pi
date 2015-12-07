@@ -27,11 +27,11 @@ int main(int argc, char **argv)
 
 	double frequency = -1;
 	int mode = -1;
-	string serial_device, ptt_state;
+	string serial_device, lock_state, ptt_state;
 	int serial_speed;
-	bool lock = false, unlock = false, status = false, rx_status = false, tx_status = false, verbose = false, json = false;
+	bool status = false, rx_status = false, tx_status = false, verbose = false, json = false;
 
-	while ((option_char = getopt(argc, argv, ":f:m:d:b:luhtrsvjp:")) != -1) {
+	while ((option_char = getopt(argc, argv, ":f:m:d:b:l:uhtrsvjp:")) != -1) {
 		switch(option_char) {
 			// set frequency
 			case 'f':
@@ -91,12 +91,13 @@ int main(int argc, char **argv)
 
 			// lock tcvr
 			case 'l':
-				lock = true;
-				break;
+				lock_state = optarg;
 
-			// unlock tcvr
-			case 'u':
-				unlock = true;
+				if (lock_state != "on" && lock_state != "off") {
+					cout << argv[0]  << ": Invalid Lock state: " << lock_state << ". Allowed values: on/off." << endl << endl;
+					return -1;
+				}
+
 				break;
 
 			// get RX status
@@ -160,13 +161,12 @@ int main(int argc, char **argv)
 	}
 
 	// lock
-	if (lock) {
-		cat->Lock(true);
-	}
-
-	// unlock
-	if (unlock) {
-		cat->Lock(false);
+	if (!lock_state.empty()) {
+		if (lock_state == "on") {
+			cat->Lock(true);
+		} else {
+			cat->Lock(false);
+		}
 	}
 
 	// set mode
@@ -223,14 +223,13 @@ void show_help(char *s)
 	cout << "Raspberry Pi and Yeasu FT8xx fusion" << endl << endl;
 
 	cout << "Usage: " << endl;
-	cout << " " << s << " -d <serial device> [-b <serial speed>] [-f <frequency in MHz>] [-m <operating mode>] [-p <on/off>] [-lurtsvj]" << endl << endl;
+	cout << " " << s << " -d <serial device> [-b <serial speed>] [-f <frequency in MHz>] [-m <operating mode>] [-p <on/off>] [-l <on/off>] [-rtsvj]" << endl << endl;
 
 	cout << "Options:" << endl;
 	cout << " -d serial device (e.g. /dev/ttyUSB0)" << endl;
 	cout << " -b serial speed (2400, 4800, 9600)" << endl;
-	cout << " -l lock transciever" << endl;
-	cout << " -u unlock transciever" << endl;
-	cout << " -p <on/off> key transmitter" <endl;
+	cout << " -l <on/off> lock transciever" << endl;
+	cout << " -p <on/off> key transmitter" << endl;
 	cout << " -m set operaring mode (CW, USB, LSB, ...)" << endl;
 	cout << " -f set frequency in MHz (e.g. 14.190)" << endl;
 	cout << " -r get receiver status" << endl;
