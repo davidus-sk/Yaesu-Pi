@@ -1,6 +1,8 @@
 # Yaesu-Pi - Raspberry Pi and Yeasu FT8xx fusion
 
-
+Phase 1: Control transciever from command line and remotely over TCP/IP socket
+Phase 2: Transmit audio from and to transciever over TCP/IP
+Phase 3: Build a remote controling device using Raspberry Pi
 
 ## Command line control: yaesu
 Compile code using `g++ -O3 -std=c++0x -o yaesu yaesu.cpp cat.cpp`. Once compiled you can use the binary to control your radio from command line or remotely with a simple PHP (or other web-based language) wrapper.
@@ -21,7 +23,8 @@ Compile code using `g++ -O3 -std=c++0x -o yaesu yaesu.cpp cat.cpp`. Once compile
 
 **Examples:**
 
-Set operating mode and frequency: `./yaesu -d /dev/ttyUSB0 -f 14.190 -m USB`. Get receiver status in JSON format: `./yaesu -d /dev/ttyUSB0 -r -s -j`.
+Set operating mode and frequency: `./yaesu -d /dev/ttyUSB0 -f 14.190 -m USB`.
+Get receiver status in JSON format: `./yaesu -d /dev/ttyUSB0 -r -s -j`.
 
 ### Controlling via PHP
 Using simple PHP script you can control your transceiver from a website. Remember you have to have web-server installed on the Pi connected to your transceiver and then you can do something like this: `http://pi_address/yaesu.php?f=14.190&m=USB`.
