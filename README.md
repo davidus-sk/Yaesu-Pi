@@ -1,4 +1,4 @@
-# Yaesu-Pi - Raspberry Pi and Yeasu FT8xx fusion
+# Yaesu-Pi - Raspberry Pi and Yaesu FT8xx fusion
 
 *Phase 1: Control transciever from command line and remotely over TCP/IP socket*
 
@@ -69,4 +69,4 @@ OR
 [ Raspberry Pi ] --- RX/TX/GND Pins --- [ Yaesu Tcvr ]
 ```
 
-Remember Yeasu's native serial output is at TTL levels. The Yaesu data cable will change this to RS-232 levels. Thus if you use this cable, you need to use cheap Serail-to-USB cable. Do not connect the Yaesu serial cable directly to Pi's RX/TX pins!
+Remember Yaesu's native serial output is at TTL levels. The Yaesu data cable will change this to RS-232 levels. Thus if you use this cable, you need to use cheap Serail-to-USB cable. Do not connect the Yaesu serial cable directly to Pi's RX/TX pins!
